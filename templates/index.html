@@ -48,26 +48,50 @@
 					{
 						fnCallback( oSettings );
 					}
+					checktable();
 				} );
+				
+			}
+			function fnGetSelected( oTableLocal ){
+				var aReturn = new Array();
+				var aTrs = oTableLocal.fnGetNodes();
+				
+				for ( var i=0 ; i<aTrs.length ; i++ )
+				{
+					if ( $(aTrs[i]).hasClass('row_selected') )
+					{
+						aReturn.push( aTrs[i] );
+					}
+				}
+				return aReturn;
 			}
 		</script>
 		<script type="text/javascript">
 			var checktable = function(){
-				$.get("favShowList/",
-					function(data){
-						var fav_list = data;
+				//$.get("favShowList/",
+				//	function(data){
+						//var fav_list = data;
 						for(var i=0; i < theguide.fnGetData().length; i++){
 							var aData = theguide.fnGetData( i );
 							var sID = aData[2];
-							for(x=0;x<fav_list.length; x++){
-								if ( aData[2] == fav_list[x] ){
-									var the_node = theguide.fnGetNodes(i);
-									$(the_node).css("font-weight","bold");
-									$(the_node).css("color", "red");
+							var highlight = false;
+							for(x=0;x<favs.fnGetData().length; x++){
+								var aData_fav = favs.fnGetData( x );
+								var sID_fav = aData_fav[1];
+								if ( sID == sID_fav ){
+									highlight = true;
 								}
 							}
+							var the_node = theguide.fnGetNodes(i);
+							if (highlight){
+								$(the_node).css("font-weight","bold");
+								$(the_node).css("color", "red");
+							}else{
+								$(the_node).css("font-weight","normal");
+								$(the_node).css("color", "black");
+							}
 						}
-				});
+				//});
 			}
 			$(function(){
 				// Datepicker
@@ -89,12 +113,14 @@
 						"iDisplayLength": 50,
 						"aoColumns"   : [null, null,{ "bSearchable": true, "bVisible": false }],
 						"sAjaxSource": "tvjson/?year="+$('#datepicker').datepicker("getDate").getFullYear()+"&month="+($('#datepicker').datepicker("getDate").getMonth()+1)+"&day="+$('#datepicker').datepicker("getDate").getDate(),
+						
+					} );
+					favs = $('#favs').dataTable( {
+						"aoColumns"   : [ null,{ "bSearchable": true, "bVisible": false }],
+						"sAjaxSource": "favShowList/",
 						"fnInitComplete": function() {
-							
 							checktable();
 						}
-						
-
 					} );
 					$("#guide tbody").click(function(event) {
 						var iPos = theguide.fnGetPosition( event.target.parentNode );
@@ -102,19 +128,55 @@
 						var sID = aData[2];
 						$.get("toggleFavShow/", { showID: sID },
 						   function(data){
-							 theguide.fnReloadAjax();
-							 checktable();
+							 //theguide.fnReloadAjax();
+							 favs.fnReloadAjax();
+							// checktable();
 						  });
 		
 					});
+					$("#favs tbody").click(function(event) {
+						$(favs.fnSettings().aoData).each(function (){
+							$(this.nTr).removeClass('row_selected');
+						});
+						$(event.target.parentNode).addClass('row_selected');
+					});
+					$('#delete').click( function() {
+						var anSelected = fnGetSelected( favs );
+						var aData = favs.fnGetData(anSelected[0]);
+						var sID = aData[1];
+						$.get("toggleFavShow/", { showID: sID },
+						   function(data){
+							 //theguide.fnReloadAjax();
+							 favs.fnReloadAjax();
+							// checktable();
+						  });
+					} );
+
 				} );
 			});
 		</script>
 	</head>
 	<body>
 		<p>Welcome, {{ user.get_full_name }}. Your favourites are highlighted below.</p>
-
-		<div align= "center" id="datepicker"></div>
+		<div style="float:left;width:50%">
+		<p><a href="javascript:void(0)" id="delete">Delete selected favourites</a></p>
+		<table cellpadding="0" cellspacing="0" border="0" class="display"id="favs">
+			<thead>
+				<tr>
+					<th width="80%" align='left'>Show Name</th>
+					<th width="10%" align='left'>Show ID</th>
+				</tr>
+			</thead>
+			<tbody>
+				
+			</tbody>	
+		</table>
+		</div>
+		<div style="float:left;width:50%">
+			<div align= "center" id="datepicker"></div>
+		</div>
+		
+		
 		<table cellpadding="0" cellspacing="0" border="0" class="display"id="guide">
 			<thead>
 				<tr>

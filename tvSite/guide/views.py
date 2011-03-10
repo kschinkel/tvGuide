@@ -59,16 +59,16 @@ def favShowList(request):
 	try:
 		profile = request.user.get_profile()
 		for a_show in profile.fav_shows.all():
-			fav_list.append(a_show.tID)
+			fav_list.append([a_show.name,a_show.tID])
 	except:		
 		profile = UserProfile()
 		profile.user = request.user
 		profile.save()
 		
 	#fav_list = ['6318','5714']
-	#dataObj = {fav_list }
+	dataObj = {'aaData' : fav_list }
 
-	return HttpResponse(json.dumps(fav_list),mimetype="application/json")
+	return HttpResponse(json.dumps(dataObj),mimetype="application/json")
 	
 @login_required
 def main(request):
