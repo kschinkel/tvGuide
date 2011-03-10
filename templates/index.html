@@ -1,0 +1,139 @@
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+		<title>TV Guide</title>
+		<style type="text/css" title="currentStyle">
+			@import "../site_media/DataTables-1.7.6/media/css/demo_page.css";
+			@import "../site_media/DataTables-1.7.6/media/css/demo_table.css";
+		</style>
+		<link type="text/css" href="../site_media/jquery-ui-1.8.10.custom/css/dark-hive/jquery-ui-1.8.10.custom.css" rel="stylesheet" />	
+		<script type="text/javascript" src="../site_media/jquery-ui-1.8.10.custom/js/jquery-1.4.4.min.js"></script>
+		<script type="text/javascript" src="../site_media/jquery-ui-1.8.10.custom/js/jquery-ui-1.8.10.custom.min.js"></script>
+		<script type="text/javascript" src="../site_media/DataTables-1.7.6/media/js/jquery.dataTables.js"></script>
+		
+		<script type="text/javascript">
+			$.fn.dataTableExt.oApi.fnReloadAjax = function ( oSettings, sNewSource, fnCallback, bStandingRedraw )
+			{
+				if ( typeof sNewSource != 'undefined' && sNewSource != null )
+				{
+					oSettings.sAjaxSource = sNewSource;
+				}
+				this.oApi._fnProcessingDisplay( oSettings, true );
+				var that = this;
+				var iStart = oSettings._iDisplayStart;
+				
+				oSettings.fnServerData( oSettings.sAjaxSource, null, function(json) {
+					/* Clear the old information from the table */
+					that.oApi._fnClearTable( oSettings );
+					
+					/* Got the data - add it to the table */
+					for ( var i=0 ; i<json.aaData.length ; i++ )
+					{
+						that.oApi._fnAddData( oSettings, json.aaData[i] );
+					}
+					
+					oSettings.aiDisplay = oSettings.aiDisplayMaster.slice();
+					that.fnDraw( that );
+					
+					if ( typeof bStandingRedraw != 'undefined' && bStandingRedraw === true )
+					{
+						oSettings._iDisplayStart = iStart;
+						that.fnDraw( false );
+					}
+					
+					that.oApi._fnProcessingDisplay( oSettings, false );
+					
+					/* Callback user function - for event handlers etc */
+					if ( typeof fnCallback == 'function' && fnCallback != null )
+					{
+						fnCallback( oSettings );
+					}
+				} );
+			}
+		</script>
+		<script type="text/javascript">
+			var checktable = function(){
+				$.get("favShowList/",
+					function(data){
+						var fav_list = data;
+						for(var i=0; i < theguide.fnGetData().length; i++){
+							var aData = theguide.fnGetData( i );
+							var sID = aData[2];
+							for(x=0;x<fav_list.length; x++){
+								if ( aData[2] == fav_list[x] ){
+									var the_node = theguide.fnGetNodes(i);
+									$(the_node).css("font-weight","bold");
+									$(the_node).css("color", "red");
+								}
+							}
+						}
+				});
+			}
+			$(function(){
+				// Datepicker
+				$('#datepicker').datepicker({
+					onSelect: function(date) {
+						var year = $('#datepicker').datepicker("getDate").getFullYear();
+						var month  = $('#datepicker').datepicker("getDate").getMonth()+1;
+						var day  = $('#datepicker').datepicker("getDate").getDate();
+						theguide.fnSettings().sAjaxSource = "tvjson/?year="+year+"&month="+month+"&day="+day;
+						theguide.fnReloadAjax();
+
+					},
+					inline: true
+				});
+				$(document).ready(function() {
+					theguide = $('#guide').dataTable( {
+						"bProcessing": true,
+						"aaSorting": [[ 0, "desc" ]],
+						"iDisplayLength": 50,
+						"aoColumns"   : [null, null,{ "bSearchable": true, "bVisible": false }],
+						"sAjaxSource": "tvjson/?year="+$('#datepicker').datepicker("getDate").getFullYear()+"&month="+($('#datepicker').datepicker("getDate").getMonth()+1)+"&day="+$('#datepicker').datepicker("getDate").getDate(),
+						"fnInitComplete": function() {
+							
+							checktable();
+						}
+						
+
+					} );
+					$("#guide tbody").click(function(event) {
+						var iPos = theguide.fnGetPosition( event.target.parentNode );
+						var aData = theguide.fnGetData( iPos );
+						var sID = aData[2];
+						$.get("toggleFavShow/", { showID: sID },
+						   function(data){
+							 theguide.fnReloadAjax();
+							 checktable();
+						  });
+		
+					});
+				} );
+			});
+		</script>
+	</head>
+	<body>
+		<p>Welcome, {{ user.get_full_name }}. Your favourites are highlighted below.</p>
+
+		<div align= "center" id="datepicker"></div>
+		<table cellpadding="0" cellspacing="0" border="0" class="display"id="guide">
+			<thead>
+				<tr>
+					<th width="10%" align='left'>Start Time</th>
+					<th width="80%" align='left'>Show Name</th>
+					<th width="10%" align='left'>Show ID</th>
+				</tr>
+			</thead>
+			<tbody>
+				
+			</tbody>
+			<tfoot>
+				<tr>
+					<th width="10%" align='left'>Start Time</th>
+					<th width="80%" align='left'>Show Name</th>
+					<th width="10%" align='left'>Show ID</th>
+				</tr>
+
+			</tfoot>
+		</table>
+	</body>
+</html>
