@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 
 class StartTime(models.Model):
-	start = models.DateTimeField()
+	start = models.DateTimeField(primary_key=True)
 	def __unicode__(self):
 		return str(self.start)
 
