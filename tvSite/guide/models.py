@@ -7,14 +7,17 @@ class StartTime(models.Model):
 		return str(self.start)
 
 class Show(models.Model):
-	tID = models.IntegerField(primary_key=True)
+	#tID = models.IntegerField(primary_key=True)
 	name = models.CharField(max_length=200)
 	start_times = models.ManyToManyField(StartTime)
 	def __unicode__(self):
-		return str(self.tID)+ ":" + self.name
+		return str(self.id)+ ":" + self.name
+	class Meta:
+		permissions = (
+			("can_have_favs", "Can the user have favourite shows"),
+		)
+
 	
 class UserProfile(models.Model):
 	user = models.ForeignKey(User, unique=True)
 	fav_shows = models.ManyToManyField(Show)
-
-User.profile = property(lambda u: UserProfile.objects.get_or_create(user=u)[0])

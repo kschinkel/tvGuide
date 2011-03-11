@@ -1,91 +1,77 @@
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
+from django.http import HttpResponseRedirect
 from django.contrib.auth.decorators import login_required
-import urllib2
-from xml.dom.minidom import parse, parseString
+from django.contrib.auth.decorators import permission_required
+from django.core.exceptions import ObjectDoesNotExist
 from django.template import Context, loader
 from django.contrib.auth.models import User
+from django.shortcuts import get_object_or_404, get_list_or_404
 from tvSite.guide.models import UserProfile
 from tvSite.guide.models import Show
 from tvSite.guide.models import StartTime
 from datetime import datetime, time
+from django.contrib.auth import logout
 import json
 
-def getText(nodelist):
-    rc = []
-    for node in nodelist:
-        if node.nodeType == node.TEXT_NODE:
-			rc.append(node.data)
-	return ''.join(rc)
-
 @login_required
-def toggleFavShow(request):
-	if 'showID' not in request.GET:
-		return HttpResponse(json.dumps("FAILED"),mimetype="application/json")
-	showID = int(request.GET.get("showID"))
-	profile = request.user.get_profile()
-	fav_show = Show.objects.get(tID=showID)
-	for a_fav in profile.fav_shows.all():
-		if a_fav == fav_show:
-			profile.fav_shows.remove(fav_show)
-			return HttpResponse(json.dumps("REMOVED"),mimetype="application/json")
-	profile.fav_shows.add(fav_show)
-	return HttpResponse(json.dumps("ADDED"),mimetype="application/json")
+def toggleFavShow(request, show_id):
+	if request.user.has_perm('Show.can_have_favs'):
+		fav_show = get_object_or_404(Show,id=int(show_id))
+		profile = request.user.get_profile()
+		for a_fav in profile.fav_shows.all():
+			if a_fav == fav_show:
+				profile.fav_shows.remove(fav_show)
+				return HttpResponse("REMOVED")
+		profile.fav_shows.add(fav_show)
+		return HttpResponse("ADDED")
+	else:
+		return HttpResponse("Invalid Permissions!")
 	
-	
-@login_required
-def tvjson(request):
-	if 'year' not in request.GET or 'month' not in request.GET or 'day' not in request.GET:
-		return render_to_response('index.html')
-	year = request.GET.get("year")
-	month = request.GET.get("month")
-	day = request.GET.get("day")
-	thepage = "unhandled problem"
-	
-	objList = []
-	for a_show in Show.objects.all():
-		for shows_today in a_show.start_times.filter(start__year=year, start__month=month, start__day=day):
-			time = shows_today.start.strftime("%I:%M%p")
-			a_obj = [time,a_show.name,a_show.tID]
-			objList.append(a_obj)
-			
-	dataObj = {'aaData': objList }
+def logout_user(request):
+	logout(request)
+	return HttpResponseRedirect("/main/")
 
-	return HttpResponse(json.dumps(dataObj),mimetype="application/json")
+def tvjson(request, year, month, day):
+	#shows_today = get_list_or_404(Show,start_times__start__year=year, start_times__start__month=month, start_times__start__day=day)
+	shows_today = Show.objects.filter(start_times__start__year=year, start_times__start__month=month, start_times__start__day=day)
 
-@login_required
+	shows = []
+	for a_show in shows_today:
+		for shows_times in a_show.start_times.filter(start__year=year, start__month=month, start__day=day):
+			time = shows_times.start.strftime("%I:%M%p")
+			shows.append([time, a_show.name, a_show.id])		
+	
+	result = {'aaData': shows }
+	return HttpResponse(json.dumps(result),mimetype="application/json")
+
 def favShowList(request):
-	fav_list =[]
-	try:
-		profile = request.user.get_profile()
-		for a_show in profile.fav_shows.all():
-			fav_list.append([a_show.name,a_show.tID])
-	except:		
-		profile = UserProfile()
-		profile.user = request.user
-		profile.save()
+	favourites =[]
+	if request.user.is_authenticated():
+		try:
+			profile = request.user.get_profile()
+			for a_show in profile.fav_shows.all():
+				favourites.append([a_show.name,a_show.id])
+		except ObjectDoesNotExist:		
+			profile = UserProfile()
+			profile.user = request.user
+			profile.save()
 		
-	#fav_list = ['6318','5714']
-	dataObj = {'aaData' : fav_list }
-
-	return HttpResponse(json.dumps(dataObj),mimetype="application/json")
+	result = {'aaData' : favourites }
+	return HttpResponse(json.dumps(result),mimetype="application/json")
 	
-@login_required
 def main(request):
-	fav_list =[]
-	try:
-		profile = request.user.get_profile()
-		for a_show in profile.fav_shows.all():
-			fav_list.append(a_show.tID)
-			print "Found fav",a_show.tID
-	except:		
-		profile = UserProfile()
-		profile.user = request.user
-		profile.save()
-		
-	#fav_list = ['6318','5714']
-	t = loader.get_template('index.html')
-	c = Context( {'user':request.user})
-
-	return HttpResponse(t.render(c))
-	#return render_to_response('index.html')
+	if request.user.is_anonymous():
+		welcome_msg = "Hi there! You need to login if you want to add favourites."
+		link = '/accounts/login/?next=/main/'
+		link_msg = 'Login'
+	else:
+		welcome_msg = "Welcome, "
+		link = '/logout/'
+		link_msg = 'Logout'
+		if request.user.first_name != "":
+			print request.user.first_name
+			welcome_msg = welcome_msg + str(request.user.first_name)
+		else:
+			welcome_msg = welcome_msg + str(request.user.username)
+	return render_to_response('index.html', {'welcome_msg' : welcome_msg, 'link' : link, 'link_msg' : link_msg} )

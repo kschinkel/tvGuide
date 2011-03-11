@@ -100,7 +100,8 @@
 						var year = $('#datepicker').datepicker("getDate").getFullYear();
 						var month  = $('#datepicker').datepicker("getDate").getMonth()+1;
 						var day  = $('#datepicker').datepicker("getDate").getDate();
-						theguide.fnSettings().sAjaxSource = "tvjson/?year="+year+"&month="+month+"&day="+day;
+						//theguide.fnSettings().sAjaxSource = "tvjson/?year="+year+"&month="+month+"&day="+day;
+						theguide.fnSettings().sAjaxSource = "tvjson/"+year+"/"+month+"/"+day;
 						theguide.fnReloadAjax();
 
 					},
@@ -111,9 +112,15 @@
 						"bProcessing": true,
 						"aaSorting": [[ 0, "desc" ]],
 						"iDisplayLength": 50,
+						"oLanguage": {
+							"sEmptyTable": "No shows available for the selected date"
+						},
 						"aoColumns"   : [null, null,{ "bSearchable": true, "bVisible": false }],
-						"sAjaxSource": "tvjson/?year="+$('#datepicker').datepicker("getDate").getFullYear()+"&month="+($('#datepicker').datepicker("getDate").getMonth()+1)+"&day="+$('#datepicker').datepicker("getDate").getDate(),
-						
+						//"sAjaxSource": "tvjson/?year="+$('#datepicker').datepicker("getDate").getFullYear()+"&month="+($('#datepicker').datepicker("getDate").getMonth()+1)+"&day="+$('#datepicker').datepicker("getDate").getDate(),
+						"sAjaxSource": "tvjson/" + $('#datepicker').datepicker("getDate").getFullYear()+"/"+($('#datepicker').datepicker("getDate").getMonth()+1)+"/"+$('#datepicker').datepicker("getDate").getDate(),
+						"fnInitComplete": function() {
+							checktable();
+						}
 					} );
 					favs = $('#favs').dataTable( {
 						"aoColumns"   : [ null,{ "bSearchable": true, "bVisible": false }],
@@ -125,13 +132,13 @@
 					$("#guide tbody").click(function(event) {
 						var iPos = theguide.fnGetPosition( event.target.parentNode );
 						var aData = theguide.fnGetData( iPos );
-						var sID = aData[2];
-						$.get("toggleFavShow/", { showID: sID },
-						   function(data){
-							 //theguide.fnReloadAjax();
-							 favs.fnReloadAjax();
-							// checktable();
-						  });
+						if( aData != null){
+							var show_id = aData[2];
+							$.post("toggleFavShow/"+show_id,
+							   function(data){
+								 favs.fnReloadAjax();
+							  });
+						}
 		
 					});
 					$("#favs tbody").click(function(event) {
@@ -142,14 +149,14 @@
 					});
 					$('#delete').click( function() {
 						var anSelected = fnGetSelected( favs );
-						var aData = favs.fnGetData(anSelected[0]);
-						var sID = aData[1];
-						$.get("toggleFavShow/", { showID: sID },
-						   function(data){
-							 //theguide.fnReloadAjax();
-							 favs.fnReloadAjax();
-							// checktable();
-						  });
+						if (anSelected.length != 0){
+							var aData = favs.fnGetData(anSelected[0]);
+							var show_id = aData[1];
+							$.post("toggleFavShow/"+show_id,
+							   function(data){
+								 favs.fnReloadAjax();
+							  });
+						 }
 					} );
 
 				} );
@@ -157,7 +164,8 @@
 		</script>
 	</head>
 	<body>
-		<p>Welcome, {{ user.get_full_name }}. Your favourites are highlighted below.</p>
+		<p>{{ welcome_msg }} <a href="{{ link }}">{{ link_msg }}</a></p>
+		
 		<div style="float:left;width:50%">
 		<p><a href="javascript:void(0)" id="delete">Delete selected favourites</a></p>
 		<table cellpadding="0" cellspacing="0" border="0" class="display"id="favs">
