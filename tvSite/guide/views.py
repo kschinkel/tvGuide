@@ -14,20 +14,17 @@ from datetime import datetime, time
 from django.contrib.auth import logout
 import json
 
-@login_required
+@permission_required('guide.can_have_favs')
 def toggleFavShow(request, show_id):
-	if request.user.has_perm('Show.can_have_favs'):
-		fav_show = get_object_or_404(Show,id=int(show_id))
-		profile = request.user.get_profile()
-		for a_fav in profile.fav_shows.all():
-			if a_fav == fav_show:
-				profile.fav_shows.remove(fav_show)
-				return HttpResponse("REMOVED")
-		profile.fav_shows.add(fav_show)
-		return HttpResponse("ADDED")
-	else:
-		return HttpResponse("Invalid Permissions!")
-	
+	fav_show = get_object_or_404(Show,id=int(show_id))
+	profile = request.user.get_profile()
+	for a_fav in profile.fav_shows.all():
+		if a_fav == fav_show:
+			profile.fav_shows.remove(fav_show)
+			return HttpResponse("REMOVED")
+	profile.fav_shows.add(fav_show)
+	return HttpResponse("ADDED")
+
 def logout_user(request):
 	logout(request)
 	return HttpResponseRedirect("/main/")
