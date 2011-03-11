@@ -58,17 +58,4 @@ def favShowList(request):
 	return HttpResponse(json.dumps(result),mimetype="application/json")
 	
 def main(request):
-	if request.user.is_anonymous():
-		welcome_msg = "Hi there! You need to login if you want to add favourites."
-		link = '/accounts/login/?next=/main/'
-		link_msg = 'Login'
-	else:
-		welcome_msg = "Welcome, "
-		link = '/logout/'
-		link_msg = 'Logout'
-		if request.user.first_name != "":
-			print request.user.first_name
-			welcome_msg = welcome_msg + str(request.user.first_name)
-		else:
-			welcome_msg = welcome_msg + str(request.user.username)
-	return render_to_response('index.html', {'welcome_msg' : welcome_msg, 'link' : link, 'link_msg' : link_msg} )
+	return render_to_response('index.html', { 'user' : request.user } )

@@ -164,8 +164,17 @@
 		</script>
 	</head>
 	<body>
-		<p>{{ welcome_msg }} <a href="{{ link }}">{{ link_msg }}</a></p>
-		
+		{% if user.is_authenticated %}
+			<p>Welcome,
+			{% if user.get_full_name == "" %}
+				{{ user.username }}
+			{% else %}
+				{{ user.get_full_name }}.
+			{% endif %}
+			Thanks for logging in.</p>
+		{% else %}
+			<p>Hi there! You need to login if you want to add favourites. <a href="/accounts/login/?next=/main/">Login</a></p>
+		{% endif %}
 		<div style="float:left;width:50%">
 		<p><a href="javascript:void(0)" id="delete">Delete selected favourites</a></p>
 		<table cellpadding="0" cellspacing="0" border="0" class="display"id="favs">
