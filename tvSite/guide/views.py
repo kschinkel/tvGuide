@@ -14,48 +14,58 @@ from datetime import datetime, time
 from django.contrib.auth import logout
 import json
 
+
 @permission_required('guide.can_have_favs')
 def toggleFavShow(request, show_id):
-	fav_show = get_object_or_404(Show,id=int(show_id))
-	profile = request.user.get_profile()
-	for a_fav in profile.fav_shows.all():
-		if a_fav == fav_show:
-			profile.fav_shows.remove(fav_show)
-			return HttpResponse("REMOVED")
-	profile.fav_shows.add(fav_show)
-	return HttpResponse("ADDED")
+    """
+    Comments for this function
+    """
+    fav_show = get_object_or_404(Show, id = int(show_id))
+    profile = request.user.get_profile()
+    is_already_fav = profile.fav_shows.filter(id = fav_show.id)
+    if len(is_already_fav) == 0:
+        profile.fav_shows.add(fav_show)
+        return HttpResponse("ADDED")
+    else:
+        profile.fav_shows.remove(fav_show)
+        return HttpResponse("REMOVED")
+
 
 def logout_user(request):
-	logout(request)
-	return HttpResponseRedirect("/main/")
+    logout(request)
+    return HttpResponseRedirect("/main/")
+
 
 def tvjson(request, year, month, day):
-	#shows_today = get_list_or_404(Show,start_times__start__year=year, start_times__start__month=month, start_times__start__day=day)
-	shows_today = Show.objects.filter(start_times__start__year=year, start_times__start__month=month, start_times__start__day=day)
+    shows_today = Show.objects.filter(start_times__start__year = year,
+                                        start_times__start__month = month,
+                                        start_times__start__day = day)
+    shows = []
+    for a_show in shows_today:
+        for shows_times in a_show.start_times.filter(start__year = year,
+                                                    start__month = month,
+                                                    start__day = day):
+            time = shows_times.start.strftime("%I:%M%p")
+            shows.append([time, a_show.name, a_show.id])
 
-	shows = []
-	for a_show in shows_today:
-		for shows_times in a_show.start_times.filter(start__year=year, start__month=month, start__day=day):
-			time = shows_times.start.strftime("%I:%M%p")
-			shows.append([time, a_show.name, a_show.id])		
-	
-	result = {'aaData': shows }
-	return HttpResponse(json.dumps(result),mimetype="application/json")
+    result = {'aaData': shows}
+    return HttpResponse(json.dumps(result), mimetype="application/json")
+
 
 def favShowList(request):
-	favourites =[]
-	if request.user.is_authenticated():
-		try:
-			profile = request.user.get_profile()
-			for a_show in profile.fav_shows.all():
-				favourites.append([a_show.name,a_show.id])
-		except ObjectDoesNotExist:		
-			profile = UserProfile()
-			profile.user = request.user
-			profile.save()
-		
-	result = {'aaData' : favourites }
-	return HttpResponse(json.dumps(result),mimetype="application/json")
-	
+    favourites = []
+    if request.user.is_authenticated():
+        try:
+            profile = request.user.get_profile()
+            for a_show in profile.fav_shows.all():
+                favourites.append([a_show.name, a_show.id])
+        except ObjectDoesNotExist:
+            profile = UserProfile()
+            profile.user = request.user
+            profile.save()
+    result = {'aaData': favourites}
+    return HttpResponse(json.dumps(result), mimetype="application/json")
+
+
 def main(request):
-	return render_to_response('index.html', { 'user' : request.user } )
+    return render_to_response('index.html', {'user': request.user})
