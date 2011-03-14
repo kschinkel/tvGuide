@@ -65,11 +65,11 @@ any that are the user's favourite*/
 function checktable(){
 	for(var i=0; i < theguide.fnGetData().length; i++){
 		var aData = theguide.fnGetData( i );
-		var sID = aData[2];
+		var sID = aData[0];
 		var highlight = false;
 		for(x=0;x<favs.fnGetData().length; x++){
 			var aData_fav = favs.fnGetData( x );
-			var sID_fav = aData_fav[1];
+			var sID_fav = aData_fav[0];
 			if ( sID == sID_fav ){
 				highlight = true;
 			}
@@ -102,12 +102,12 @@ $(document).ready(function() {
 	//create the DataTable for the tv Guide
 	theguide = $('#guide').dataTable( {
 		"bProcessing": true,
-		"aaSorting": [[ 0, "desc" ]],
+		"aaSorting": [[ 1, "asc" ]],
 		"iDisplayLength": 50,
 		"oLanguage": {
 			"sEmptyTable": "No shows available for the selected date"
 		},
-		"aoColumns"   : [null, null,{ "bSearchable": true, "bVisible": false }],
+		"aoColumns"   : [{ "bSearchable": true, "bVisible": false }, null, null, null],
 		"sAjaxSource": "tvjson/" + $('#datepicker').datepicker("getDate").getFullYear()+"/"+($('#datepicker').datepicker("getDate").getMonth()+1)+"/"+$('#datepicker').datepicker("getDate").getDate(),
 		"fnInitComplete": function() {
 			checktable();
@@ -116,7 +116,7 @@ $(document).ready(function() {
 	
 	//create the DataTable for the favourites list
 	favs = $('#favs').dataTable( {
-		"aoColumns"   : [ null,{ "bSearchable": true, "bVisible": false }],
+		"aoColumns"   : [ { "bSearchable": true, "bVisible": false }, null],
 		"sAjaxSource": "favShowList/",
 		"oLanguage": {
 			"sEmptyTable": "No favourites are selected"
@@ -131,7 +131,7 @@ $(document).ready(function() {
 		var iPos = theguide.fnGetPosition( event.target.parentNode );
 		var aData = theguide.fnGetData( iPos );
 		if( aData != null){
-			var show_id = aData[2];
+			var show_id = aData[0];
 			$.post("toggleFavShow/"+show_id,
 			   function(data){
 				 favs.fnReloadAjax();
@@ -151,7 +151,7 @@ $(document).ready(function() {
 		var anSelected = fnGetSelected( favs );
 		if (anSelected.length != 0){
 			var aData = favs.fnGetData(anSelected[0]);
-			var show_id = aData[1];
+			var show_id = aData[0];
 			$.post("toggleFavShow/"+show_id,
 			   function(data){
 				 favs.fnReloadAjax();
