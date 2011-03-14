@@ -1,3 +1,11 @@
+/*
+The following function is a plug-in by Allan Jardine
+(http://www.sprymedia.co.uk/)
+It was slightly modified so that when a table is reloaded using
+this function the tvGuide table was scanned again to
+highlight the user's favourites. 
+Code acquired from: http://www.datatables.net/plug-ins/api
+*/
 $.fn.dataTableExt.oApi.fnReloadAjax = function ( oSettings, sNewSource, fnCallback, bStandingRedraw ){
 	if ( typeof sNewSource != 'undefined' && sNewSource != null ){
 		oSettings.sAjaxSource = sNewSource;
@@ -36,6 +44,8 @@ $.fn.dataTableExt.oApi.fnReloadAjax = function ( oSettings, sNewSource, fnCallba
 	} );
 	
 }
+
+/*returns the selected row(s) of a table*/
 function fnGetSelected( oTableLocal ){
 	var aReturn = new Array();
 	var aTrs = oTableLocal.fnGetNodes();
@@ -50,7 +60,9 @@ function fnGetSelected( oTableLocal ){
 	return aReturn;
 }
 
-var checktable = function(){
+/*This function scans the tv Guide table and 'highlights' 
+any that are the user's favourite*/
+function checktable(){
 	for(var i=0; i < theguide.fnGetData().length; i++){
 		var aData = theguide.fnGetData( i );
 		var sID = aData[2];
@@ -72,7 +84,9 @@ var checktable = function(){
 		}
 	}
 }
-$(function(){
+
+$(document).ready(function() {
+	//add date picker object
 	$('#datepicker').datepicker({
 		onSelect: function(date) {
 			var year = $('#datepicker').datepicker("getDate").getFullYear();
@@ -83,58 +97,65 @@ $(function(){
 
 		},
 		inline: true
+	}); //end of date picker
+	
+	//create the DataTable for the tv Guide
+	theguide = $('#guide').dataTable( {
+		"bProcessing": true,
+		"aaSorting": [[ 0, "desc" ]],
+		"iDisplayLength": 50,
+		"oLanguage": {
+			"sEmptyTable": "No shows available for the selected date"
+		},
+		"aoColumns"   : [null, null,{ "bSearchable": true, "bVisible": false }],
+		"sAjaxSource": "tvjson/" + $('#datepicker').datepicker("getDate").getFullYear()+"/"+($('#datepicker').datepicker("getDate").getMonth()+1)+"/"+$('#datepicker').datepicker("getDate").getDate(),
+		"fnInitComplete": function() {
+			checktable();
+		}
+	} ); //end of tv Guide table
+	
+	//create the DataTable for the favourites list
+	favs = $('#favs').dataTable( {
+		"aoColumns"   : [ null,{ "bSearchable": true, "bVisible": false }],
+		"sAjaxSource": "favShowList/",
+		"oLanguage": {
+			"sEmptyTable": "No favourites are selected"
+		},
+		"fnInitComplete": function() {
+			checktable();
+		}
+	} ); //end of favourites table
+	
+	/*add action handler: for clicking tv Guide table*/
+	$("#guide tbody").click(function(event) {
+		var iPos = theguide.fnGetPosition( event.target.parentNode );
+		var aData = theguide.fnGetData( iPos );
+		if( aData != null){
+			var show_id = aData[2];
+			$.post("toggleFavShow/"+show_id,
+			   function(data){
+				 favs.fnReloadAjax();
+			  });
+		}
+
 	});
-	$(document).ready(function() {
-		theguide = $('#guide').dataTable( {
-			"bProcessing": true,
-			"aaSorting": [[ 0, "desc" ]],
-			"iDisplayLength": 50,
-			"oLanguage": {
-				"sEmptyTable": "No shows available for the selected date"
-			},
-			"aoColumns"   : [null, null,{ "bSearchable": true, "bVisible": false }],
-			//"sAjaxSource": "tvjson/?year="+$('#datepicker').datepicker("getDate").getFullYear()+"&month="+($('#datepicker').datepicker("getDate").getMonth()+1)+"&day="+$('#datepicker').datepicker("getDate").getDate(),
-			"sAjaxSource": "tvjson/" + $('#datepicker').datepicker("getDate").getFullYear()+"/"+($('#datepicker').datepicker("getDate").getMonth()+1)+"/"+$('#datepicker').datepicker("getDate").getDate(),
-			"fnInitComplete": function() {
-				checktable();
-			}
-		} );
-		favs = $('#favs').dataTable( {
-			"aoColumns"   : [ null,{ "bSearchable": true, "bVisible": false }],
-			"sAjaxSource": "favShowList/",
-			"fnInitComplete": function() {
-				checktable();
-			}
-		} );
-		$("#guide tbody").click(function(event) {
-			var iPos = theguide.fnGetPosition( event.target.parentNode );
-			var aData = theguide.fnGetData( iPos );
-			if( aData != null){
-				var show_id = aData[2];
-				$.post("toggleFavShow/"+show_id,
-				   function(data){
-					 favs.fnReloadAjax();
-				  });
-			}
-
+	/*add action handler: for clicking favourites table*/
+	$("#favs tbody").click(function(event) {
+		$(favs.fnSettings().aoData).each(function (){
+			$(this.nTr).removeClass('row_selected');
 		});
-		$("#favs tbody").click(function(event) {
-			$(favs.fnSettings().aoData).each(function (){
-				$(this.nTr).removeClass('row_selected');
-			});
-			$(event.target.parentNode).addClass('row_selected');
-		});
-		$('#delete').click( function() {
-			var anSelected = fnGetSelected( favs );
-			if (anSelected.length != 0){
-				var aData = favs.fnGetData(anSelected[0]);
-				var show_id = aData[1];
-				$.post("toggleFavShow/"+show_id,
-				   function(data){
-					 favs.fnReloadAjax();
-				  });
-			 }
-		} );
-
-	} );
-});
+		$(event.target.parentNode).addClass('row_selected');
+	});
+	/*add action handler: for clicking delete button for favourites*/
+	$('#delete').click( function() {
+		var anSelected = fnGetSelected( favs );
+		if (anSelected.length != 0){
+			var aData = favs.fnGetData(anSelected[0]);
+			var show_id = aData[1];
+			$.post("toggleFavShow/"+show_id,
+			   function(data){
+				 favs.fnReloadAjax();
+			  });
+		 }
+	});
+}); //end of document.ready()
