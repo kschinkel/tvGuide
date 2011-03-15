@@ -1,0 +1,10 @@
+Simple TV Guide web application.
+Run 'manage.py getTVGuide' to download and populate the database with entries. It can take up to 10-15 minutes to fully parse the XML file it downloads, be patient.
+This command should be setup as a cron/scheduled task as only a couple of weeks of data is retrieved.
+The database has been provided to prevent having to run the command to check out the application.
+
+The site's root is at /main. ie 'http://localhost/main/
+
+Super user credentials for the database provided:
+Username: kschinkel
+Password: kschinkel
