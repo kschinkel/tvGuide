@@ -21,7 +21,7 @@
 			{% else %}
 				{{ user.get_full_name }}.
 			{% endif %}
-			Thanks for logging in.</p>
+			Thanks for logging in. <a href="/logout/">Logout</a></p></p>
 		{% else %}
 			<p>Hi there! You need to login if you want to add favourites. <a href="/accounts/login/?next=/main/">Login</a></p>
 		{% endif %}
