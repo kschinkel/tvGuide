@@ -42,8 +42,11 @@ class SimpleTest(TestCase):
 
         new_entry = GuideEntry()
         #Compile a date/time stamp for the show
-        date_object = datetime.strptime('2011-03-14 5:00 pm',
-            '%Y-%m-%d %I:%M %p')
+        year = datetime.now().strftime("%Y")
+        month = datetime.now().strftime("%m")
+        day = datetime.now().strftime("%d")
+        date_object = datetime.strptime(year + '-' + month
+            + '-' + day + ' 5:00 pm', '%Y-%m-%d %I:%M %p')
         new_entry.start = date_object
         new_entry.network = "SPIKE TV"
         new_entry.show = new_show
@@ -82,7 +85,11 @@ class SimpleTest(TestCase):
         c = Client()
         self.failUnlessEqual(c.login(username='john', password='password'),
             True)
-        response = c.get('/main/tvjson/2011/3/14')
+        year = datetime.now().strftime("%Y")
+        month = datetime.now().strftime("%m")
+        day = datetime.now().strftime("%d")
+        response = c.get('/main/tvjson/' + year + '/' + month +
+            '/' + day)
         self.failUnlessEqual(response.status_code, 200)
 
     def test_toggle_fav_has_permission(self):

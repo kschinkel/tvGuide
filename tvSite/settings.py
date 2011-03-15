@@ -80,8 +80,8 @@ MIDDLEWARE_CLASSES = (
 ROOT_URLCONF = 'tvSite.urls'
 
 TEMPLATE_DIRS = (
-    '''Purposely left as relative path, development being done on multiple
-    workstations/setups'''
+    #Purposely left as relative path, development being done on multiple
+    #workstations/setups
 	'../templates'
 )
 
